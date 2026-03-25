@@ -38,6 +38,7 @@ export function GraphView({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fgRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const initialLock = useRef(false);
   const [dimensions, setDimensions] = useState({ width: 600, height: 500 });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
@@ -62,13 +63,6 @@ export function GraphView({
     if (fgRef.current && graphData.nodes.length > 0) {
       fgRef.current.d3Force("charge").strength(-150);
       fgRef.current.d3Force("link").distance(80);
-
-      // Auto-center camera on warmup completion
-      fgRef.current.onEngineStop(() => {
-        if (highlightSet.size === 0) {
-          fgRef.current.zoomToFit(400, 40);
-        }
-      });
     }
   }, [graphData]);
 
@@ -229,6 +223,12 @@ export function GraphView({
             linkDirectionalArrowRelPos={1}
             backgroundColor={bgColor}
             cooldownTicks={100}
+            onEngineStop={() => {
+              if (!initialLock.current && fgRef.current) {
+                fgRef.current.zoomToFit(600, 40);
+                initialLock.current = true;
+              }
+            }}
           />
         )}
       </CardContent>
