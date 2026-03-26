@@ -71,15 +71,43 @@ export function GraphView({
     [highlightNodes],
   );
 
+  const centerGraphInView = useCallback(
+    (duration = 600, padding = 60) => {
+      if (!fgRef.current || graphData.nodes.length === 0) return;
+
+      fgRef.current.zoomToFit(duration, padding);
+
+      window.setTimeout(() => {
+        const bounds = fgRef.current?.getGraphBbox?.();
+        if (!bounds) return;
+
+        const centerX = (bounds.x[0] + bounds.x[1]) / 2;
+        const centerY = (bounds.y[0] + bounds.y[1]) / 2;
+        fgRef.current?.centerAt(centerX, centerY, duration / 2);
+      }, Math.max(duration - 150, 0));
+    },
+    [graphData.nodes.length],
+  );
+
   useEffect(() => {
     if (!fgRef.current) return;
 
     if (highlightSet.size > 0) {
-      setTimeout(() => {
+      window.setTimeout(() => {
         fgRef.current.zoomToFit(800, 50, (n: any) => highlightSet.has(n.id));
       }, 500); // 500ms allows physics to stabilize before camera lock
     }
   }, [highlightSet]);
+
+  useEffect(() => {
+    if (!initialLock.current || graphData.nodes.length === 0) return;
+
+    const timeoutId = window.setTimeout(() => {
+      centerGraphInView(400, 70);
+    }, 120);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [dimensions, graphData.nodes.length, centerGraphInView]);
 
   const paintNode = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -169,7 +197,7 @@ export function GraphView({
             variant="ghost"
             size="icon"
             className="h-7 w-7"
-            onClick={() => fgRef.current?.zoomToFit(400, 40)}
+            onClick={() => centerGraphInView(400, 70)}
           >
             <Maximize2 className="h-3.5 w-3.5" />
           </Button>
@@ -225,7 +253,7 @@ export function GraphView({
             cooldownTicks={100}
             onEngineStop={() => {
               if (!initialLock.current && fgRef.current) {
-                fgRef.current.zoomToFit(600, 40);
+                centerGraphInView(600, 70);
                 initialLock.current = true;
               }
             }}
